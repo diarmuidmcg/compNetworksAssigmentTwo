@@ -63,12 +63,16 @@ forwarder.on("message", (msg, info) => {
   // if receiver being init, header is 0
   else if (headerByteOne == 0) {
     // append to receiver array
+    receivers.append({ port: info.port, address: info.address });
     // tell controller
+    updateControllerOnReceiver();
   }
   // if receiver is being stopped, header is 1
   else if (headerByteOne == 1) {
-    // delete from receiver array
+    // remove receiver by port number
+    receivers = receivers.filter((item) => item.port !== info.port);
     // tell controller
+    updateControllerOnReceiver();
   }
 }); // end forwarder.on
 
@@ -101,18 +105,23 @@ function updateControllerOnReceiver() {
   const data = Buffer.from(header);
 
   //sending msg
-  receiver.send([data, receivers], conf.port, conf.serverHost, (error) => {
-    if (error) {
-      console.log(error);
-      receiver.close();
-    } else {
-      console.log(
-        "single msg sent to ingress from ",
-        conf.serverHost,
-        conf.port
-      );
+  receiver.send(
+    [data, receivers],
+    config.controller_port,
+    conf.serverHost,
+    (error) => {
+      if (error) {
+        console.log(error);
+        receiver.close();
+      } else {
+        console.log(
+          "single msg sent to controller from ",
+          conf.serverHost,
+          conf.port
+        );
+      }
     }
-  });
+  );
 }
 
 forwarder.bind(config.port);
