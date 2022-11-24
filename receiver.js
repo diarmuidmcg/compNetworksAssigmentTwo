@@ -72,10 +72,8 @@ receiver.on("message", (msg, info) => {
 function sendSetUpMessage(fileToReturn) {
   // create header
   const header = new Uint8Array(2);
-  // since receiver setup, first header byte is 1
-  header[0] = 1;
-  // set second headerbyte to file to be returned
-  header[1] = fileToReturn;
+  // since receiver setup, first header byte is 0
+  header[0] = 0;
   const data = Buffer.from(header);
 
   //sending msg
@@ -92,7 +90,7 @@ function sendSetUpMessage(fileToReturn) {
     }
   });
 }
-function sendFileMessage(msg, file) {
+// function sendFileMessage(msg, file) {
   console.log("sending file ");
   console.log("client id is " + msg[2]);
   // create header
@@ -121,12 +119,10 @@ function sendFileMessage(msg, file) {
 function sendCloseDownMessage(fileToReturn) {
   // create header
   const header = new Uint8Array(2);
-  // since receiver close down, first header byte is 5
-  header[0] = 5;
-  // set second headerbyte to file to be returned
-  header[1] = fileToReturn;
+  // since receiver close down, first header byte is 1
+  header[0] = 1;
   const data = Buffer.from(header);
-  console.log("sending close down client");
+  console.log("sending close down receiver");
 
   //sending msg
   receiver.send(data, conf.port, conf.serverHost, (error) => {
@@ -135,7 +131,7 @@ function sendCloseDownMessage(fileToReturn) {
       receiver.close();
     } else {
       console.log(
-        "single msg sent to ingress from ",
+        "single msg sent to forwarder from ",
         conf.serverHost,
         conf.port
       );

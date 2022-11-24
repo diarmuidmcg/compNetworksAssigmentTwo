@@ -66,8 +66,8 @@ function sendMessage(payload) {
   console.log("payload is ");
   // create header
   const header = new Uint8Array(2);
-  // since client msg, first header byte is 2
-  header[0] = 2;
+  // since client msg, first header byte is 9
+  header[0] = 9;
   // set 3rd object to payload
 
   const data = Buffer.from(header);
@@ -78,58 +78,58 @@ function sendMessage(payload) {
       client.close();
     } else {
       console.log(
-        "single msg sent to ingress from ",
+        "single msg sent to forwarder from ",
         conf.serverHost,
         conf.port
       );
     }
   });
 }
-function sendSetUpMessage() {
-  // create header
-  const header = new Uint8Array(2);
-  // since client setup, first header byte is 0
-  header[0] = 0;
-  // set second headerbyte to 0
-  header[1] = 0;
-  const data = Buffer.from(header);
-  //sending msg
-  client.send(data, conf.port, conf.serverHost, (error) => {
-    if (error) {
-      console.log(error);
-      client.close();
-    } else {
-      console.log(
-        "single msg sent to ingress from ",
-        conf.serverHost,
-        conf.port
-      );
-    }
-  });
-}
-function sendCloseDownMessage() {
-  // create header
-  const header = new Uint8Array(2);
-  // since client setup, first header byte is 0
-  header[0] = 4;
-  // set second headerbyte to 0
-  header[1] = 0;
-  const data = Buffer.from(header);
-  console.log("sending close down client");
-
-  //sending msg
-  client.send(data, conf.port, conf.serverHost, (error) => {
-    if (error) {
-      console.log(error);
-      client.close();
-    } else {
-      console.log(
-        "single msg sent to ingress from ",
-        conf.serverHost,
-        conf.port
-      );
-      client.close();
-      process.exit();
-    }
-  });
-}
+// function sendSetUpMessage() {
+//   // create header
+//   const header = new Uint8Array(2);
+//   // since client setup, first header byte is 0
+//   header[0] = 0;
+//   // set second headerbyte to 0
+//   header[1] = 0;
+//   const data = Buffer.from(header);
+//   //sending msg
+//   client.send(data, conf.port, conf.serverHost, (error) => {
+//     if (error) {
+//       console.log(error);
+//       client.close();
+//     } else {
+//       console.log(
+//         "single msg sent to ingress from ",
+//         conf.serverHost,
+//         conf.port
+//       );
+//     }
+//   });
+// }
+// function sendCloseDownMessage() {
+//   // create header
+//   const header = new Uint8Array(2);
+//   // since client setup, first header byte is 0
+//   header[0] = 4;
+//   // set second headerbyte to 0
+//   header[1] = 0;
+//   const data = Buffer.from(header);
+//   console.log("sending close down client");
+//
+//   //sending msg
+//   client.send(data, conf.port, conf.serverHost, (error) => {
+//     if (error) {
+//       console.log(error);
+//       client.close();
+//     } else {
+//       console.log(
+//         "single msg sent to ingress from ",
+//         conf.serverHost,
+//         conf.port
+//       );
+//       client.close();
+//       process.exit();
+//     }
+//   });
+// }

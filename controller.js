@@ -64,7 +64,7 @@ controller.on("message", (msg, info) => {
 
 //emits when socket is ready and listening for datagram msgs
 controller.on("listening", () => {
-  const address = ingress.address();
+  const address = controller.address();
   const port = address.port;
   const family = address.family;
   const ipaddr = address.address;
@@ -83,4 +83,4 @@ controller.on("close", () => {
   console.log("udp_controller", "info", "Socket is closed !");
 });
 
-controller.bind(config.port);
+controller.bind(config.controller_port);
