@@ -19,7 +19,7 @@ forwarder.on("error", (error) => {
 forwarder.on("message", (msg, info) => {
   // check header for where it's going
   const headerByteOne = msg[0];
-
+  console.log("header on  forwarder is " + headerByteOne);
   // if the header is a client, try to route it
   if (headerByteOne == 9) {
     // check if destination in forwards
@@ -62,8 +62,16 @@ forwarder.on("message", (msg, info) => {
   }
   // if receiver being init, header is 0
   else if (headerByteOne == 0) {
+    const payload = new TextDecoder().decode(msg);
+    const genMsg = payload.toString();
+    const withoutHeader = genMsg.slice(1);
+    console.log("receiver is " + withoutHeader);
     // append to receiver array
-    receivers.append({ port: info.port, address: info.address });
+    receivers.push({
+      port: info.port,
+      address: info.address,
+      receiverId: withoutHeader,
+    });
     // tell controller
     updateControllerOnReceiver();
   }
@@ -74,6 +82,7 @@ forwarder.on("message", (msg, info) => {
     // tell controller
     updateControllerOnReceiver();
   }
+  console.log("receivers are " + JSON.stringify(receivers));
 }); // end forwarder.on
 
 //emits when socket is ready and listening for datagram msgs
@@ -82,6 +91,8 @@ forwarder.on("listening", () => {
   const port = address.port;
   const family = address.family;
   const ipaddr = address.address;
+
+  updateControllerOnReceiver();
 
   console.log(
     "udp_forwarder",
@@ -96,19 +107,21 @@ forwarder.on("listening", () => {
 forwarder.on("close", () => {
   console.log("udp_forwarder", "info", "Socket is closed !");
 });
-
+// console.log("receivers are " + JSON.stringify(receivers));
 function updateControllerOnReceiver() {
   // create header
-  const header = new Uint8Array(2);
+  const header = new Uint8Array(1);
   // since forwarder updating controller, first header byte is 3
   header[0] = 3;
   const data = Buffer.from(header);
-
+  // console.log("receivers are " + JSON.stringify(receivers));
+  let payload = Buffer.from(JSON.stringify(receivers));
+  // console.log("receivers are " + payload);
   //sending msg
   forwarder.send(
-    [data, receivers],
+    [data, payload],
     config.controller_port,
-    conf.serverHost,
+    config.serverHost,
     (error) => {
       if (error) {
         console.log(error);
@@ -116,8 +129,8 @@ function updateControllerOnReceiver() {
       } else {
         console.log(
           "single msg sent to controller from ",
-          conf.serverHost,
-          conf.port
+          config.serverHost,
+          config.port
         );
       }
     }

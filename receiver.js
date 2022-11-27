@@ -9,6 +9,7 @@ var files = fs.readdirSync("./filesToReturn");
 console.log("creating receiver");
 // creating a receiver socket
 const receiver = dgram.createSocket("udp4");
+let receiverId;
 
 // Setup readline functionalities
 const rl = readline.createInterface({
@@ -25,15 +26,16 @@ function readLineAsync(message) {
       // exit process if exit
       if (underCaseAnswer == "exit") sendCloseDownMessage();
       else {
+        receiverId = underCaseAnswer;
         // try to parse to be proper format
-        if (false) {
-          fileReturned = 0;
-        } else {
-          console.log("That is not valid input. try again\n");
-          handleServerInput(
-            "What id will you accept?\nProper format is DD:AA:AA"
-          );
-        }
+        // if (false) {
+        //   fileReturned = 0;
+        // } else {
+        //   console.log("That is not valid input. try again\n");
+        //   handleServerInput(
+        //     "What id will you accept?\nProper format is DD:AA:AA\n\n"
+        //   );
+        // }
         sendSetUpMessage(fileReturned);
         handleServerInput("\ntype 'exit' to quit\n");
       }
@@ -46,7 +48,7 @@ async function handleServerInput(msg) {
   await readLineAsync(msg);
 }
 // initial ask for user input
-handleServerInput("What id will you accept?\nProper format is DD:AA:AA");
+handleServerInput("What id will you accept?\nProper format is DD:AA:AA\n\n");
 
 receiver.on("message", (msg, info) => {
   console.log("Data received from server : " + msg.toString());
@@ -71,13 +73,13 @@ receiver.on("message", (msg, info) => {
 
 function sendSetUpMessage(fileToReturn) {
   // create header
-  const header = new Uint8Array(2);
+  const header = new Uint8Array(1);
   // since receiver setup, first header byte is 0
   header[0] = 0;
   const data = Buffer.from(header);
-
+  const payload = Buffer.from(JSON.stringify(receiverId));
   //sending msg
-  receiver.send(data, conf.port, conf.serverHost, (error) => {
+  receiver.send([data, payload], conf.port, conf.serverHost, (error) => {
     if (error) {
       console.log(error);
       receiver.close();
@@ -90,32 +92,7 @@ function sendSetUpMessage(fileToReturn) {
     }
   });
 }
-// function sendFileMessage(msg, file) {
-  console.log("sending file ");
-  console.log("client id is " + msg[2]);
-  // create header
-  const header = new Uint8Array(3);
-  // since receiver returning file, first header byte is 3
-  header[0] = 3;
-  // set second headerbyte to file to be returned
-  header[1] = fileReturned;
-  header[2] = msg[2];
-  const data = Buffer.from(header);
 
-  //sending msg
-  receiver.send([data, file], conf.port, conf.serverHost, (error) => {
-    if (error) {
-      console.log(error);
-      receiver.close();
-    } else {
-      console.log(
-        "single msg sent to ingress from ",
-        conf.serverHost,
-        conf.port
-      );
-    }
-  });
-}
 function sendCloseDownMessage(fileToReturn) {
   // create header
   const header = new Uint8Array(2);

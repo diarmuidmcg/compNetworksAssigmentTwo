@@ -23,15 +23,21 @@ controller.on("error", (error) => {
 controller.on("message", (msg, info) => {
   // check header for where it's going
   const headerByteOne = msg[0];
+  console.log("header on  controller is " + headerByteOne);
   // if header is 3, the forwarder is updating the controller
   if (headerByteOne == 3) {
+    const payload = new TextDecoder().decode(msg);
+    const genMsg = payload.toString();
+    const withoutHeader = genMsg.slice(1);
+    console.log("receivers are " + withoutHeader);
+
     // if the forwarder exists, remove it
     forwarders = forwarders.filter((item) => item.port !== info.port);
     // if it doesnt, add it
-    forwarders.append({
+    forwarders.push({
       port: info.port,
       address: info.address,
-      receivers: msg[1],
+      receivers: withoutHeader,
     });
   }
   // if header is 4, the forwarder is asking for a destination
@@ -45,20 +51,21 @@ controller.on("message", (msg, info) => {
     forwarders = forwarders.filter((item) => item.port !== info.port);
   }
 
-  const data = Buffer.from(header);
-  controller.send(
-    [data, info.payload],
-    destinationPort,
-    info.address,
-    (error, bytes) => {
-      if (error) {
-        console.log("udp_controller", "error", error);
-        controller.close();
-      } else {
-        console.log("udp_controller", "info", "Data forwarded");
-      }
-    }
-  );
+  console.log("forwarders are " + JSON.stringify(forwarders));
+  // const data = Buffer.from(header);
+  // controller.send(
+  //   [data, info.payload],
+  //   destinationPort,
+  //   info.address,
+  //   (error, bytes) => {
+  //     if (error) {
+  //       console.log("udp_controller", "error", error);
+  //       controller.close();
+  //     } else {
+  //       console.log("udp_controller", "info", "Data forwarded");
+  //     }
+  //   }
+  // );
 }); // end controller.on
 
 function locateDestinationForForwarder(info) {
@@ -74,7 +81,7 @@ function locateDestinationForForwarder(info) {
 
   let payload;
   // if found, payload is header AND address
-  payload = [data, "myAddress"];
+  payload = [data, "44:44:44"];
   // else
   payload = data;
 
