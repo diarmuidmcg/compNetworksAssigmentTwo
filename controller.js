@@ -23,27 +23,26 @@ controller.on("error", (error) => {
 controller.on("message", (msg, info) => {
   // check header for where it's going
   const headerByteOne = msg[0];
-  // check if destination in forwards
-  let targetForward = forwarders.filter((item) => item.port === headerByteOne);
-
-  // create header
-  const header = new Uint8Array(3);
-  // define destination port
-  let destinationPort;
-
-  // if it exists, forward it
-  if (targetForward[0]) {
-    // set header to 4 for 'controller to forwarder w data'
-    header[0] = 4;
-    // set destination to forwarder
-    destinationPort = targetForward[0].port;
+  // if header is 3, the forwarder is updating the controller
+  if (headerByteOne == 3) {
+    // if the forwarder exists, remove it
+    forwarders = forwarders.filter((item) => item.port !== info.port);
+    // if it doesnt, add it
+    forwarders.append({
+      port: info.port,
+      address: info.address,
+      receivers: msg[1],
+    });
   }
-  // if not in table, drop it & inform that it doesnt exist
-  else {
-    // set header to 5 for 'controller to forwarder withOUT data'
-    header[0] = 5;
-    // set destination to sender
-    destinationPort = info.port;
+  // if header is 4, the forwarder is asking for a destination
+  else if (headerByteOne == 4) {
+    // identify the address & send it
+    locateDestinationForForwarder(info);
+  }
+  // if header is 7, the forwarder is shutting down
+  else if (headerByteOne == 7) {
+    // remove forwarder from list
+    forwarders = forwarders.filter((item) => item.port !== info.port);
   }
 
   const data = Buffer.from(header);
@@ -61,6 +60,38 @@ controller.on("message", (msg, info) => {
     }
   );
 }); // end controller.on
+
+function locateDestinationForForwarder(info) {
+  // create header
+  const header = new Uint8Array(2);
+  // find address
+
+  // if found, set header to 5
+  header[0] = 5;
+  // if not found, set header to 6
+  header[0] = 6;
+  const data = Buffer.from(header);
+
+  let payload;
+  // if found, payload is header AND address
+  payload = [data, "myAddress"];
+  // else
+  payload = data;
+
+  //sending msg
+  controller.send(payload, info.port, info.serverHost, (error) => {
+    if (error) {
+      console.log(error);
+      controller.close();
+    } else {
+      console.log(
+        "single msg sent to forwarder from ",
+        conf.serverHost,
+        conf.port
+      );
+    }
+  });
+}
 
 //emits when socket is ready and listening for datagram msgs
 controller.on("listening", () => {

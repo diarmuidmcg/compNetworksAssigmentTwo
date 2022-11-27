@@ -46,7 +46,7 @@ forwarder.on("message", (msg, info) => {
     }
 
     const data = Buffer.from(header);
-    controller.send(
+    forwarder.send(
       [data, info.payload],
       destinationPort,
       info.address,
@@ -105,14 +105,14 @@ function updateControllerOnReceiver() {
   const data = Buffer.from(header);
 
   //sending msg
-  receiver.send(
+  forwarder.send(
     [data, receivers],
     config.controller_port,
     conf.serverHost,
     (error) => {
       if (error) {
         console.log(error);
-        receiver.close();
+        forwarder.close();
       } else {
         console.log(
           "single msg sent to controller from ",
@@ -122,6 +122,31 @@ function updateControllerOnReceiver() {
       }
     }
   );
+}
+
+function sendCloseDownMessage(fileToReturn) {
+  // create header
+  const header = new Uint8Array(1);
+  // since forwarder close down, first header byte is 7
+  header[0] = 7;
+  const data = Buffer.from(header);
+  console.log("sending close down forwarder");
+
+  //sending msg
+  forwarder.send(data, conf.controller_port, conf.serverHost, (error) => {
+    if (error) {
+      console.log(error);
+      forwarder.close();
+    } else {
+      console.log(
+        "single msg sent to controller from ",
+        conf.serverHost,
+        conf.port
+      );
+      forwarder.close();
+      process.exit();
+    }
+  });
 }
 
 forwarder.bind(config.port);
