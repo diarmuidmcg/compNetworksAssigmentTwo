@@ -7,6 +7,14 @@ import config from "./config.js";
 // creating a udp forwarder
 const forwarder = dgram.createSocket("udp4");
 
+export default class Receiver {
+  constructor(port, address, id) {
+    this.port = port;
+    this.address = address;
+    this.id = id;
+  }
+}
+
 let receivers = [];
 
 // emits when any error occurs
@@ -66,12 +74,14 @@ forwarder.on("message", (msg, info) => {
     const genMsg = payload.toString();
     const withoutHeader = genMsg.slice(1);
     console.log("receiver is " + withoutHeader);
+    const newReceiver = new Receiver(info.port, info.address, withoutHeader);
     // append to receiver array
-    receivers.push({
-      port: info.port,
-      address: info.address,
-      receiverId: withoutHeader,
-    });
+    receivers.push(newReceiver);
+    // receivers.push({
+    //   port: info.port,
+    //   address: info.address,
+    //   receiverId: withoutHeader,
+    // });
     // tell controller
     updateControllerOnReceiver();
   }

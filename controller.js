@@ -1,8 +1,32 @@
 import dgram from "node:dgram";
-
+import Receiver from "./forwarder.js";
 import config from "./config.js";
 
 // --------------------creating a udp controller --------------------
+
+// class Receiver {
+//   constructor(port, address, id) {
+//     this.port = port;
+//     this.address = address;
+//     this.id = id;
+//   }
+// }
+class Forwarder {
+  receivers = [];
+  constructor(port, address, arrayOfReceivers) {
+    this.port = port;
+    this.address = address;
+    let elReceivers = JSON.parse(arrayOfReceivers);
+    for (let i = 0; i < elReceivers.length; i++) {
+      let newReceiver = new Receiver(
+        elReceivers[i]["port"],
+        elReceivers[i]["address"],
+        elReceivers[i]["id"]
+      );
+      this.receivers.push(newReceiver);
+    }
+  }
+}
 
 // creating a udp ingress
 const controller = dgram.createSocket("udp4");
@@ -34,11 +58,13 @@ controller.on("message", (msg, info) => {
     // if the forwarder exists, remove it
     forwarders = forwarders.filter((item) => item.port !== info.port);
     // if it doesnt, add it
-    forwarders.push({
-      port: info.port,
-      address: info.address,
-      receivers: withoutHeader,
-    });
+    let newForwarder = new Forwarder(info.port, info.address, withoutHeader);
+    forwarders.push(newForwarder);
+    // forwarders.push({
+    //   port: info.port,
+    //   address: info.address,
+    //   receivers: withoutHeader,
+    // });
   }
   // if header is 4, the forwarder is asking for a destination
   else if (headerByteOne == 4) {
