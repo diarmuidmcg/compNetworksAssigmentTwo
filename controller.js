@@ -1,41 +1,14 @@
 import dgram from "node:dgram";
-import Receiver from "./forwarder.js";
+import Forwarder from "./Objects/Forwarder.js";
+import Receiver from "./Objects/Receiver.js";
 import config from "./config.js";
 
 // --------------------creating a udp controller --------------------
-
-// class Receiver {
-//   constructor(port, address, id) {
-//     this.port = port;
-//     this.address = address;
-//     this.id = id;
-//   }
-// }
-class Forwarder {
-  receivers = [];
-  constructor(port, address, arrayOfReceivers) {
-    this.port = port;
-    this.address = address;
-    let elReceivers = JSON.parse(arrayOfReceivers);
-    for (let i = 0; i < elReceivers.length; i++) {
-      let newReceiver = new Receiver(
-        elReceivers[i]["port"],
-        elReceivers[i]["address"],
-        elReceivers[i]["id"]
-      );
-      this.receivers.push(newReceiver);
-    }
-  }
-}
 
 // creating a udp ingress
 const controller = dgram.createSocket("udp4");
 
 let forwarders = [];
-let workers = [];
-
-let availableClients = [0, 1, 2, 3, 4, 5, 6, 7];
-let takenClients = [];
 
 // emits when any error occurs
 controller.on("error", (error) => {

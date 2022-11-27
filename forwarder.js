@@ -1,5 +1,5 @@
 import dgram from "node:dgram";
-
+import Receiver from "./Objects/Receiver.js";
 import config from "./config.js";
 
 // --------------------creating a udp forwarder --------------------
@@ -7,13 +7,13 @@ import config from "./config.js";
 // creating a udp forwarder
 const forwarder = dgram.createSocket("udp4");
 
-export default class Receiver {
-  constructor(port, address, id) {
-    this.port = port;
-    this.address = address;
-    this.id = id;
-  }
-}
+// export default class Receiver {
+//   constructor(port, address, id) {
+//     this.port = port;
+//     this.address = address;
+//     this.id = id;
+//   }
+// }
 
 let receivers = [];
 
@@ -156,15 +156,15 @@ function sendCloseDownMessage(fileToReturn) {
   console.log("sending close down forwarder");
 
   //sending msg
-  forwarder.send(data, conf.controller_port, conf.serverHost, (error) => {
+  forwarder.send(data, config.controller_port, config.serverHost, (error) => {
     if (error) {
       console.log(error);
       forwarder.close();
     } else {
       console.log(
         "single msg sent to controller from ",
-        conf.serverHost,
-        conf.port
+        config.serverHost,
+        config.port
       );
       forwarder.close();
       process.exit();
