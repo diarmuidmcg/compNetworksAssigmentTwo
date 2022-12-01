@@ -12,36 +12,55 @@ const rl = readline.createInterface({
   output: process.stdout,
 });
 
-// var for how many file reqs sent at once, used to prompt user input again
-let numberOfReqs;
+let forwarderPort;
+let receiverId;
 
-function readLineAsync(message) {
+function readForwardLineAsync(message) {
   return new Promise((resolve, reject) => {
     rl.question(message, (answer) => {
+      const underCaseAnswer = answer.toLowerCase();
+
       // exit process if exit
-      if (answer == "exit") {
-        sendCloseDownMessage();
-      } else {
-        // get all requests
-        let requestedFiles = answer.split(" ");
-        numberOfReqs = requestedFiles.length;
-        // iterate thru & send to server
-        for (let i = 0; i < numberOfReqs; i++) {
-          let data = Buffer.from(requestedFiles[i]);
-          sendMessage(data);
-        }
+      if (underCaseAnswer == "exit") console.log("quit");
+      else {
+        forwarderPort = underCaseAnswer;
+        handleDestinationReq(
+          "What are you looking for?\nProper format is DD:AA:AA\n\n"
+        );
+
+        handleForwardJoiner("\ntype 'exit' to quit\n");
       }
+      // send init msg
       resolve(answer);
     });
   });
 }
-async function handleServerInput() {
-  await readLineAsync(
-    "what would you like to query?\nLeave spaces between files to serve more than one\n"
-  );
+async function handleForwardJoiner(msg) {
+  await readForwardLineAsync(msg);
+}
+function readDestinationAsync(message) {
+  return new Promise((resolve, reject) => {
+    rl.question(message, (answer) => {
+      const underCaseAnswer = answer.toLowerCase();
+
+      // exit process if exit
+      if (underCaseAnswer == "exit") console.log("quit");
+      else {
+        receiverId = underCaseAnswer;
+        sendMessage(underCaseAnswer);
+        handleDestinationReq("\ntype 'exit' to quit\n");
+      }
+      // send init msg
+      resolve(answer);
+    });
+  });
+}
+async function handleDestinationReq(msg) {
+  await readDestinationAsync(msg);
 }
 // initial ask for user input
-handleServerInput();
+handleForwardJoiner("What forwarder are you a member of?\n\n");
+
 // sendSetUpMessage();
 
 client.on("message", (msg, info) => {
@@ -62,28 +81,31 @@ client.on("message", (msg, info) => {
   }
 });
 
-function sendMessage(payload) {
+function sendMessage(destinationId) {
   console.log("payload is ");
   // create header
   const header = new Uint8Array(1);
   // since client msg, first header byte is 9
   header[0] = 9;
-  // set 3rd object to payload
-
   const data = Buffer.from(header);
   //sending msg
-  client.send([data, payload], conf.port, conf.serverHost, (error) => {
-    if (error) {
-      console.log(error);
-      client.close();
-    } else {
-      console.log(
-        "single msg sent to forwarder from ",
-        conf.serverHost,
-        conf.port
-      );
+  client.send(
+    [data, destinationId],
+    forwarderPort,
+    conf.serverHost,
+    (error) => {
+      if (error) {
+        console.log(error);
+        client.close();
+      } else {
+        console.log(
+          "single msg sent to forwarder from ",
+          conf.serverHost,
+          conf.port
+        );
+      }
     }
-  });
+  );
 }
 // function sendSetUpMessage() {
 //   // create header
