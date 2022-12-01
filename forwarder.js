@@ -8,15 +8,9 @@ import * as readline from "readline";
 
 // creating a udp forwarder
 const forwarder = dgram.createSocket("udp4");
-
-// export default class Receiver {
-//   constructor(port, address, id) {
-//     this.port = port;
-//     this.address = address;
-//     this.id = id;
-//   }
-// }
 let forwarderPort;
+
+let clients = [];
 
 // Setup readline functionalities
 const rl = readline.createInterface({
@@ -60,51 +54,72 @@ forwarder.on("message", (msg, info) => {
   // check header for where it's going
   const headerByteOne = msg[0];
   console.log("header on  forwarder is " + headerByteOne);
-  // if the header is a client, try to route it
-  if (headerByteOne == 9) {
+  // if the header is a client or forwarder, try to route it
+  if (headerByteOne == 9 || headerByteOne == 10) {
     const payload = new TextDecoder().decode(msg);
     const genMsg = payload.toString();
     const destination = genMsg.slice(1);
     console.log("requested destination " + destination);
+    clients.push({
+      port: info.port,
+      destination: destination,
+      message: "messageForDest",
+    });
     // check if destination in forwards
     let result = thisForwarder.searchForReceiver(destination);
     console.log("result is " + result);
     // create header
-    const header = new Uint8Array(3);
+    const header = new Uint8Array(1);
     // define destination port
     let destinationPort;
-
+    let payloadForNextRequest;
     // if it exists locally, forward it
     if (result) {
       console.log("exists locally");
       // set header
       header[0] = 6;
       // set destination to forwarder
-      destinationPort = targetForward[0].port;
+      destinationPort = result;
+      // set payload to message
+      payloadForNextRequest = [data, "messageFromClient"];
     }
     // if not in table, ask controller
     else {
-      console.log("does not exist locally");
-      // set header
-      header[0] = 7;
-      // set destination to controller
-      destinationPort = info.port;
+      // if coming from client, ask controller
+      if (headerByteOne == 9) {
+        console.log("does not exist locally");
+        // set header
+        header[0] = 7;
+        // set destination to controller
+        destinationPort = config.controller_port;
+        // set payload to requested destination
+        payloadForNextRequest = [data, destination];
+      }
+      // if coming from forwarder, there was mistake, just kill request
+      else {
+        // set header to 6 to imitate controller returning no data
+        header[0] = 6;
+        // set destination to forwarder
+        destinationPort = info.port;
+        // set payload to requested destination
+        payloadForNextRequest = [data, destination];
+      }
     }
 
     const data = Buffer.from(header);
-    // forwarder.send(
-    //   [data, info.payload],
-    //   destinationPort,
-    //   info.address,
-    //   (error, bytes) => {
-    //     if (error) {
-    //       console.log("udp_controller", "error", error);
-    //       controller.close();
-    //     } else {
-    //       console.log("udp_controller", "info", "Data forwarded");
-    //     }
-    //   }
-    // );
+    forwarder.send(
+      payloadForNextRequest,
+      destinationPort,
+      info.address,
+      (error, bytes) => {
+        if (error) {
+          console.log("udp_controller", "error", error);
+          controller.close();
+        } else {
+          console.log("udp_controller", "info", "Data forwarded");
+        }
+      }
+    );
   }
   // if receiver being init, header is 0
   else if (headerByteOne == 0) {
@@ -130,6 +145,27 @@ forwarder.on("message", (msg, info) => {
     // receivers = receivers.filter((item) => item.port !== info.port);
     // tell controller
     updateControllerOnReceiver();
+  }
+  // if controller returns w data
+  else if (headerByteOne == 5) {
+    // forward to next forwarder
+  }
+  // if controller returns without data
+  else if (headerByteOne == 6) {
+    const payload = new TextDecoder().decode(msg);
+    const genMsg = payload.toString();
+    const destinationRequested = genMsg.slice(1);
+    console.log("destination requested is " + destinationRequested);
+    // get client
+    let client = clients.filter(
+      (item) => item.destination === destinationRequested
+    );
+    // remove client from clients list
+    clients = clients.filter(
+      (item) => item.destination === destinationRequested
+    );
+    // msg client saying not valid destination
+    sendMessageToClient(destinationRequested, client.port);
   }
   console.log("receivers are " + JSON.stringify(thisForwarder));
 }); // end forwarder.on
@@ -189,6 +225,50 @@ function updateControllerOnReceiver() {
       }
     }
   );
+}
+
+function sendMessageToClient(destinationRequested, clientPort) {
+  console.log("payload is ");
+  // create header
+  const header = new Uint8Array(1);
+  // since forwarder could not find destination, first header byte is 8
+  header[0] = 8;
+  const data = Buffer.from(header);
+  const message = "the detination " + destinationRequested + " is not valid";
+  //sending msg
+  client.send([data, message], clientPort, conf.serverHost, (error) => {
+    if (error) {
+      console.log(error);
+      client.close();
+    } else {
+      console.log(
+        "single msg sent to forwarder from ",
+        conf.serverHost,
+        conf.port
+      );
+    }
+  });
+}
+function forwardMessageToForwarder(message, forwarderPort) {
+  console.log("payload is ");
+  // create header
+  const header = new Uint8Array(1);
+  // since forwarder to forwarder, first header byte is 10
+  header[0] = 10;
+  const data = Buffer.from(header);
+  //sending msg
+  client.send([data, message], forwarderPort, conf.serverHost, (error) => {
+    if (error) {
+      console.log(error);
+      client.close();
+    } else {
+      console.log(
+        "single msg sent to forwarder from ",
+        conf.serverHost,
+        conf.port
+      );
+    }
+  });
 }
 
 function sendCloseDownMessage(fileToReturn) {

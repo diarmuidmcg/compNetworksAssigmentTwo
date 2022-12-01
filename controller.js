@@ -45,8 +45,12 @@ controller.on("message", (msg, info) => {
   }
   // if header is 4, the forwarder is asking for a destination
   else if (headerByteOne == 4) {
+    const payload = new TextDecoder().decode(msg);
+    const genMsg = payload.toString();
+    const destinationRequested = genMsg.slice(1);
+    console.log("destination requested is " + destinationRequested);
     // identify the address & send it
-    locateDestinationForForwarder(info);
+    locateDestinationForForwarder(info, destinationRequested);
   }
   // if header is 7, the forwarder is shutting down
   else if (headerByteOne == 7) {
@@ -77,7 +81,7 @@ function locateDestinationForForwarder(info) {
   // find address
   let address;
   for (let i = 0; i < forwarders.length; i++) {
-    let result = forwarders[i].searchForReceiver(info.id);
+    let result = forwarders[i].searchForReceiver(destinationRequested);
     if (result) address = result;
   }
   console.log("address is " + address);
@@ -88,10 +92,10 @@ function locateDestinationForForwarder(info) {
   const data = Buffer.from(header);
 
   let payload;
-  // if found, payload is header AND address
-  if (address) payload = [data, "44:44:44"];
-  // else
-  else payload = data;
+  // if found, payload is header AND new forwarder address
+  if (address) payload = [data, address];
+  // else payload is header & destination id
+  else payload = [data, destinationRequested];
 
   //sending msg
   controller.send(payload, info.port, info.serverHost, (error) => {
