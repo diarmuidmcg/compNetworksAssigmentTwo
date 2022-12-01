@@ -51,4 +51,24 @@ export default class Forwarder {
       }
     }
   }
+  getReceiver(idInQuestion) {
+    console.log("searching for " + idInQuestion);
+    for (let i = 0; i < this.receivers.length; i++) {
+      const currentId = this.receivers[i].id.replace(/\W/g, "").trim();
+      console.log("currentId is " + currentId);
+      if (
+        JSON.stringify(currentId) ==
+        JSON.stringify(idInQuestion.replace(/\W/g, "").trim())
+      ) {
+        console.log("found it!");
+        return this.receivers[i].port;
+      } else {
+        console.log("dont agree");
+        console.log(JSON.stringify(currentId) + "!");
+        console.log(
+          JSON.stringify(idInQuestion.replace(/\W/g, "").trim() + "!")
+        );
+      }
+    }
+  }
 }

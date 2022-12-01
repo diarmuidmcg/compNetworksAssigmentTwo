@@ -65,10 +65,6 @@ async function handleRecIdJoiner(msg) {
 // initial ask for user input
 handleForwardJoiner("What forwarder are you a member of?\n\n");
 
-receiver.on("message", (msg, info) => {
-  console.log("Data received from server : " + msg.toString());
-});
-
 function sendSetUpMessage(fileToReturn) {
   // create header
   const header = new Uint8Array(1);
@@ -115,6 +111,18 @@ function sendCloseDownMessage(fileToReturn) {
     }
   });
 }
+
+//emits when socket is ready and listening for datagram msgs
+receiver.on("listening", () => {
+  const address = receiver.address();
+  const port = address.port;
+  const family = address.family;
+  const ipaddr = address.address;
+
+  console.log("udp_receiver", "info", "receiver is listening at port " + port);
+  console.log("udp_receiver", "info", "receiver ip :" + ipaddr);
+  console.log("udp_receiver", "info", "receiver is IP4/IP6 : " + family);
+});
 
 receiver.on("message", (msg, info) => {
   console.log("Data received from server : " + msg.toString());

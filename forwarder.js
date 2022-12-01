@@ -79,7 +79,7 @@ forwarder.on("message", (msg, info) => {
     }
 
     // check if destination in forwards
-    let result = thisForwarder.searchForReceiver(searchReceiverId);
+    let result = thisForwarder.getReceiver(searchReceiverId);
     console.log("result is " + result);
     // create header
     const header = new Uint8Array(1);
@@ -89,13 +89,8 @@ forwarder.on("message", (msg, info) => {
     // if it exists locally, forward it
     if (result) {
       console.log("exists locally");
-      // since forwarder to receiver, first header byte is 2
-      header[0] = 2;
-      // set destination to forwarder
-      destinationPort = result;
-      // set payload to message
-      const data = Buffer.from(header);
-      payloadForNextRequest = [data, "messageFromClient"];
+
+      sendMessageToClientFound(destination, result);
     }
     // if not in table, ask controller
     else {
@@ -122,21 +117,20 @@ forwarder.on("message", (msg, info) => {
         const data = Buffer.from(header);
         payloadForNextRequest = [data, destination];
       }
-    }
-
-    forwarder.send(
-      payloadForNextRequest,
-      destinationPort,
-      info.address,
-      (error, bytes) => {
-        if (error) {
-          console.log("udp_controller", "error", error);
-          controller.close();
-        } else {
-          console.log("udp_controller", "info", "Data forwarded");
+      forwarder.send(
+        payloadForNextRequest,
+        destinationPort,
+        info.address,
+        (error, bytes) => {
+          if (error) {
+            console.log("udp_controller", "error", error);
+            controller.close();
+          } else {
+            console.log("udp_controller", "info", "Data forwarded");
+          }
         }
-      }
-    );
+      );
+    }
   }
   // if receiver being init, header is 0
   else if (headerByteOne == 0) {
@@ -188,7 +182,7 @@ forwarder.on("message", (msg, info) => {
     // remove client from clients list
     clients = clients.filter((item) => item.destination === destinationId);
     // msg client saying not valid destination
-    sendMessageToClient(destinationData, clientPort);
+    sendMessageToClientCouldNotFind(destinationData, clientPort);
   }
   console.log("receivers are " + JSON.stringify(thisForwarder));
 }); // end forwarder.on
@@ -250,7 +244,7 @@ function updateControllerOnReceiver() {
   );
 }
 
-function sendMessageToClient(destinationRequested, clientPort) {
+function sendMessageToClientCouldNotFind(destinationRequested, clientPort) {
   console.log("sending to client " + clientPort);
   // create header
   const header = new Uint8Array(1);
@@ -262,6 +256,33 @@ function sendMessageToClient(destinationRequested, clientPort) {
   forwarder.send(
     [data, message],
     clientPort.replace(/\W/g, "").trim(),
+    config.serverHost,
+    (error) => {
+      if (error) {
+        console.log(error);
+        forwarder.close();
+      } else {
+        console.log(
+          "single msg sent to forwarder from ",
+          config.serverHost,
+          config.port
+        );
+      }
+    }
+  );
+}
+function sendMessageToClientFound(destinationRequested, clientPort) {
+  console.log("sending to client " + clientPort);
+  // create header
+  const header = new Uint8Array(1);
+  // since forwarder could not find destination, first header byte is 8
+  header[0] = 2;
+  const data = Buffer.from(header);
+  const message = "theres a message for you!";
+  //sending msg
+  forwarder.send(
+    [data, Buffer.from(JSON.stringify(message))],
+    clientPort,
     config.serverHost,
     (error) => {
       if (error) {
