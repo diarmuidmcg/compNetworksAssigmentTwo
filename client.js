@@ -42,7 +42,7 @@ async function handleServerInput() {
 }
 // initial ask for user input
 handleServerInput();
-sendSetUpMessage();
+// sendSetUpMessage();
 
 client.on("message", (msg, info) => {
   console.log("Data received from server : " + msg.toString());

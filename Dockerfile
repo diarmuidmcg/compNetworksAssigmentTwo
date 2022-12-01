@@ -17,4 +17,4 @@ EXPOSE 8080
 EXPOSE 8080/udp
 
 # Start Broker Server
-CMD [ "npm", "run", "server" ]
+CMD [ "npm", "run", "controller" ]

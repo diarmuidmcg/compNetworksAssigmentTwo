@@ -31,7 +31,11 @@ controller.on("message", (msg, info) => {
     // if the forwarder exists, remove it
     forwarders = forwarders.filter((item) => item.port !== info.port);
     // if it doesnt, add it
-    let newForwarder = new Forwarder(info.port, info.address, withoutHeader);
+    let newForwarder = new Forwarder({
+      port: info.port,
+      address: info.address,
+      arrayOfReceivers: withoutHeader,
+    });
     forwarders.push(newForwarder);
     // forwarders.push({
     //   port: info.port,
@@ -71,18 +75,23 @@ function locateDestinationForForwarder(info) {
   // create header
   const header = new Uint8Array(2);
   // find address
-
+  let address;
+  for (let i = 0; i < forwarders.length; i++) {
+    let result = forwarders[i].searchForReceiver(info.id);
+    if (result) address = result;
+  }
+  console.log("address is " + address);
   // if found, set header to 5
-  header[0] = 5;
+  if (address) header[0] = 5;
   // if not found, set header to 6
-  header[0] = 6;
+  else header[0] = 6;
   const data = Buffer.from(header);
 
   let payload;
   // if found, payload is header AND address
-  payload = [data, "44:44:44"];
+  if (address) payload = [data, "44:44:44"];
   // else
-  payload = data;
+  else payload = data;
 
   //sending msg
   controller.send(payload, info.port, info.serverHost, (error) => {
