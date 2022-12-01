@@ -36,15 +36,15 @@ forwarder.on("message", (msg, info) => {
     const destination = genMsg.slice(1);
     console.log("requested destination " + destination);
     // check if destination in forwards
-    let result = thisForwarder.searchForReceiver(info.id);
-    console.log("target forward is " + targetForward);
+    let result = thisForwarder.searchForReceiver(destination);
+    console.log("result is " + result);
     // create header
     const header = new Uint8Array(3);
     // define destination port
     let destinationPort;
 
     // if it exists locally, forward it
-    if (targetForward[0]) {
+    if (result) {
       console.log("exists locally");
       // set header
       header[0] = 6;
@@ -61,19 +61,19 @@ forwarder.on("message", (msg, info) => {
     }
 
     const data = Buffer.from(header);
-    forwarder.send(
-      [data, info.payload],
-      destinationPort,
-      info.address,
-      (error, bytes) => {
-        if (error) {
-          console.log("udp_controller", "error", error);
-          controller.close();
-        } else {
-          console.log("udp_controller", "info", "Data forwarded");
-        }
-      }
-    );
+    // forwarder.send(
+    //   [data, info.payload],
+    //   destinationPort,
+    //   info.address,
+    //   (error, bytes) => {
+    //     if (error) {
+    //       console.log("udp_controller", "error", error);
+    //       controller.close();
+    //     } else {
+    //       console.log("udp_controller", "info", "Data forwarded");
+    //     }
+    //   }
+    // );
   }
   // if receiver being init, header is 0
   else if (headerByteOne == 0) {
@@ -109,7 +109,10 @@ forwarder.on("listening", () => {
   const family = address.family;
   const ipaddr = address.address;
 
-  thisForwarder = new Forwarder(address.port, address.addReceiver);
+  thisForwarder = new Forwarder({
+    port: address.port,
+    address: address.address,
+  });
 
   updateControllerOnReceiver();
 

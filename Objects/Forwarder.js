@@ -23,9 +23,32 @@ export default class Forwarder {
     this.receivers.push(receiver);
   }
 
+  removeReceiver(receiverId) {
+    for (let i = 0; i < this.receivers.length; i++) {
+      if (this.receivers[i].id == receiverId) {
+        this.receivers.remove(this.receivers[i]);
+      }
+    }
+  }
+
   searchForReceiver(idInQuestion) {
-    for (let i = 0; i < receivers.length; i++) {
-      if (receivers[i].id == idInQuestion) return this.address;
+    console.log("searching for " + idInQuestion);
+    for (let i = 0; i < this.receivers.length; i++) {
+      const currentId = this.receivers[i].id.replace(/\W/g, "").trim();
+      console.log("currentId is " + currentId);
+      if (
+        JSON.stringify(currentId) ==
+        JSON.stringify(idInQuestion.replace(/\W/g, "").trim())
+      ) {
+        console.log("found it!");
+        return this.address;
+      } else {
+        console.log("dont agree");
+        console.log(JSON.stringify(currentId) + "!");
+        console.log(
+          JSON.stringify(idInQuestion.replace(/\W/g, "").trim() + "!")
+        );
+      }
     }
   }
 }

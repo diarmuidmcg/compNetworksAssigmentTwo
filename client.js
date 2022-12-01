@@ -65,7 +65,7 @@ client.on("message", (msg, info) => {
 function sendMessage(payload) {
   console.log("payload is ");
   // create header
-  const header = new Uint8Array(2);
+  const header = new Uint8Array(1);
   // since client msg, first header byte is 9
   header[0] = 9;
   // set 3rd object to payload
