@@ -23,9 +23,9 @@ export default class Forwarder {
     this.receivers.push(receiver);
   }
 
-  removeReceiver(receiverId) {
+  removeReceiverByPort(receiverPort) {
     for (let i = 0; i < this.receivers.length; i++) {
-      if (this.receivers[i].id == receiverId) {
+      if (this.receivers[i].port == receiverPort) {
         this.receivers.remove(this.receivers[i]);
       }
     }

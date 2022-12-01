@@ -2,6 +2,7 @@ import dgram from "node:dgram";
 import Receiver from "./Objects/Receiver.js";
 import Forwarder from "./Objects/Forwarder.js";
 import config from "./config.js";
+import * as readline from "readline";
 
 // --------------------creating a udp forwarder --------------------
 
@@ -15,8 +16,38 @@ const forwarder = dgram.createSocket("udp4");
 //     this.id = id;
 //   }
 // }
+let forwarderPort;
 
+// Setup readline functionalities
+const rl = readline.createInterface({
+  input: process.stdin,
+  output: process.stdout,
+});
+// va
 let thisForwarder;
+function readForwardLineAsync(message) {
+  return new Promise((resolve, reject) => {
+    rl.question(message, (answer) => {
+      const underCaseAnswer = answer.toLowerCase();
+
+      // exit process if exit
+      if (underCaseAnswer == "exit") sendCloseDownMessage();
+      else {
+        forwarderPort = underCaseAnswer;
+
+        forwarder.bind(forwarderPort);
+        handleForwardJoiner("\ntype 'exit' to quit\n");
+      }
+      // send init msg
+      resolve(answer);
+    });
+  });
+}
+async function handleForwardJoiner(msg) {
+  await readForwardLineAsync(msg);
+}
+// initial ask for user input
+handleForwardJoiner("What port would you like to use?\n\n");
 
 // emits when any error occurs
 forwarder.on("error", (error) => {
@@ -95,6 +126,7 @@ forwarder.on("message", (msg, info) => {
   // if receiver is being stopped, header is 1
   else if (headerByteOne == 1) {
     // remove receiver by port number
+    thisForwarder.removeReceiverByPort(info.port);
     // receivers = receivers.filter((item) => item.port !== info.port);
     // tell controller
     updateControllerOnReceiver();
@@ -183,5 +215,3 @@ function sendCloseDownMessage(fileToReturn) {
     }
   });
 }
-
-forwarder.bind(config.port);

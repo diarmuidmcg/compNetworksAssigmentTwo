@@ -10,6 +10,7 @@ console.log("creating receiver");
 // creating a receiver socket
 const receiver = dgram.createSocket("udp4");
 let receiverId;
+let forwarderPort;
 
 // Setup readline functionalities
 const rl = readline.createInterface({
@@ -18,7 +19,30 @@ const rl = readline.createInterface({
 });
 // var for how many file reqs sent at once, used to prompt user input again
 let fileReturned;
-function readLineAsync(message) {
+function readForwardLineAsync(message) {
+  return new Promise((resolve, reject) => {
+    rl.question(message, (answer) => {
+      const underCaseAnswer = answer.toLowerCase();
+
+      // exit process if exit
+      if (underCaseAnswer == "exit") sendCloseDownMessage();
+      else {
+        forwarderPort = underCaseAnswer;
+        handleRecIdJoiner(
+          "What id will you accept?\nProper format is DD:AA:AA\n\n"
+        );
+
+        handleForwardJoiner("\ntype 'exit' to quit\n");
+      }
+      // send init msg
+      resolve(answer);
+    });
+  });
+}
+async function handleForwardJoiner(msg) {
+  await readForwardLineAsync(msg);
+}
+function readRecIdLineAsync(message) {
   return new Promise((resolve, reject) => {
     rl.question(message, (answer) => {
       const underCaseAnswer = answer.toLowerCase();
@@ -27,48 +51,22 @@ function readLineAsync(message) {
       if (underCaseAnswer == "exit") sendCloseDownMessage();
       else {
         receiverId = underCaseAnswer;
-        // try to parse to be proper format
-        // if (false) {
-        //   fileReturned = 0;
-        // } else {
-        //   console.log("That is not valid input. try again\n");
-        //   handleServerInput(
-        //     "What id will you accept?\nProper format is DD:AA:AA\n\n"
-        //   );
-        // }
         sendSetUpMessage(fileReturned);
-        handleServerInput("\ntype 'exit' to quit\n");
+        handleRecIdJoiner("\ntype 'exit' to quit\n");
       }
       // send init msg
       resolve(answer);
     });
   });
 }
-async function handleServerInput(msg) {
-  await readLineAsync(msg);
+async function handleRecIdJoiner(msg) {
+  await readRecIdLineAsync(msg);
 }
 // initial ask for user input
-handleServerInput("What id will you accept?\nProper format is DD:AA:AA\n\n");
+handleForwardJoiner("What forwarder are you a member of?\n\n");
 
 receiver.on("message", (msg, info) => {
   console.log("Data received from server : " + msg.toString());
-  let particularFile;
-  switch (fileReturned) {
-    case 0:
-      particularFile = "refunk.txt";
-      break;
-    case 1:
-      particularFile = "weeve.txt";
-      break;
-    case 2:
-      particularFile = "basic_pic.jpg";
-      break;
-    default:
-  }
-  const contents = fs.readFileSync(`./filesToReturn/${particularFile}`, {
-    encoding: "base64",
-  });
-  sendFileMessage(msg, contents);
 });
 
 function sendSetUpMessage(fileToReturn) {
@@ -79,7 +77,7 @@ function sendSetUpMessage(fileToReturn) {
   const data = Buffer.from(header);
   const payload = Buffer.from(JSON.stringify(receiverId));
   //sending msg
-  receiver.send([data, payload], conf.port, conf.serverHost, (error) => {
+  receiver.send([data, payload], forwarderPort, conf.serverHost, (error) => {
     if (error) {
       console.log(error);
       receiver.close();
