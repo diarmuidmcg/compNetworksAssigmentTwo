@@ -59,15 +59,27 @@ forwarder.on("message", (msg, info) => {
   if (headerByteOne == 9 || headerByteOne == 10) {
     const payload = new TextDecoder().decode(msg);
     const genMsg = payload.toString();
-    const destination = genMsg.slice(1);
-    console.log("requested destination " + destination);
-    clients.push({
-      port: info.port,
-      destination: destination,
-      message: "messageForDest",
-    });
+    const destination = genMsg.slice(1).replace(/['"]+/g, "");
+    let searchReceiverId;
+    // if client sending
+    if (headerByteOne == 9) {
+      console.log("requested destination " + destination);
+      clients.push({
+        port: info.port,
+        destination: destination,
+        message: "messageForDest",
+      });
+      searchReceiverId = destination;
+    }
+    // if forwarder sending
+    else {
+      const ports = destination.split(",");
+
+      searchReceiverId = ports[1].replace(",", "");
+    }
+
     // check if destination in forwards
-    let result = thisForwarder.searchForReceiver(destination);
+    let result = thisForwarder.searchForReceiver(searchReceiverId);
     console.log("result is " + result);
     // create header
     const header = new Uint8Array(1);
@@ -94,9 +106,11 @@ forwarder.on("message", (msg, info) => {
         header[0] = 4;
         // set destination to controller
         destinationPort = config.controller_port;
+        // client details will always be client Port then destinationId
+        const clientDetails = info.port + "," + destination;
         // set payload to requested destination
         const data = Buffer.from(header);
-        payloadForNextRequest = [data, destination];
+        payloadForNextRequest = [data, clientDetails];
       }
       // if coming from forwarder, there was mistake, just kill request
       else {
@@ -153,30 +167,28 @@ forwarder.on("message", (msg, info) => {
   else if (headerByteOne == 5) {
     const payload = new TextDecoder().decode(msg);
     const genMsg = payload.toString();
-    const newForwarderPort = genMsg.slice(1);
-    console.log("newForwarderPort is " + newForwarderPort);
+    const destinationData = genMsg.slice(1).replace(/['"]+/g, "");
+    console.log("destinationData is " + destinationData);
+
     // forward to next forwarder
-    forwardMessageToForwarder(
-      "this message",
-      newForwarderPort.replace(/\W/g, "").trim()
-    );
+    forwardMessageToForwarder("this message", destinationData);
   }
   // if controller returns without data
   else if (headerByteOne == 6) {
     const payload = new TextDecoder().decode(msg);
     const genMsg = payload.toString();
-    const destinationRequested = genMsg.slice(1);
-    console.log("destination requested is " + destinationRequested);
+    const destinationData = genMsg.slice(1).replace(/['"]+/g, "");
+    console.log("destinationData is " + destinationData);
+    // break up clientDetails to client Port & destinationId
+    const ports = destinationData.split(",");
+    const clientPort = ports[0].replace(",", "");
+    const destinationId = ports[1].replace(",", "");
     // get client
-    let client = clients.filter(
-      (item) => item.destination === destinationRequested
-    );
+    let client = clients.filter((item) => item.destination === destinationId);
     // remove client from clients list
-    clients = clients.filter(
-      (item) => item.destination === destinationRequested
-    );
+    clients = clients.filter((item) => item.destination === destinationId);
     // msg client saying not valid destination
-    sendMessageToClient(destinationRequested, client.port);
+    sendMessageToClient(destinationData, clientPort);
   }
   console.log("receivers are " + JSON.stringify(thisForwarder));
 }); // end forwarder.on
@@ -247,21 +259,29 @@ function sendMessageToClient(destinationRequested, clientPort) {
   const data = Buffer.from(header);
   const message = "the detination " + destinationRequested + " is not valid";
   //sending msg
-  forwarder.send([data, message], clientPort, config.serverHost, (error) => {
-    if (error) {
-      console.log(error);
-      forwarder.close();
-    } else {
-      console.log(
-        "single msg sent to forwarder from ",
-        config.serverHost,
-        config.port
-      );
+  forwarder.send(
+    [data, message],
+    clientPort.replace(/\W/g, "").trim(),
+    config.serverHost,
+    (error) => {
+      if (error) {
+        console.log(error);
+        forwarder.close();
+      } else {
+        console.log(
+          "single msg sent to forwarder from ",
+          config.serverHost,
+          config.port
+        );
+      }
     }
-  });
+  );
 }
-function forwardMessageToForwarder(destination, forwarderPort) {
+function forwardMessageToForwarder(destination, destinationData) {
   console.log("forwader to forwarder ");
+  // break up clientDetails to client Port & destinationId
+  const ports = destinationData.split(",");
+  const forwarderPort = ports[2].replace(",", "").replace(/\W/g, "").trim();
   // create header
   const header = new Uint8Array(1);
   // since forwarder to forwarder, first header byte is 10
@@ -269,7 +289,7 @@ function forwardMessageToForwarder(destination, forwarderPort) {
   const data = Buffer.from(header);
   //sending msg
   forwarder.send(
-    [data, destination],
+    [data, destinationData],
     forwarderPort,
     config.serverHost,
     (error) => {

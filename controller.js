@@ -59,20 +59,6 @@ controller.on("message", (msg, info) => {
   }
 
   console.log("forwarders are " + JSON.stringify(forwarders));
-  // const data = Buffer.from(header);
-  // controller.send(
-  //   [data, info.payload],
-  //   destinationPort,
-  //   info.address,
-  //   (error, bytes) => {
-  //     if (error) {
-  //       console.log("udp_controller", "error", error);
-  //       controller.close();
-  //     } else {
-  //       console.log("udp_controller", "info", "Data forwarded");
-  //     }
-  //   }
-  // );
 }); // end controller.on
 
 function locateDestinationForForwarder(info, destinationRequested) {
@@ -80,10 +66,16 @@ function locateDestinationForForwarder(info, destinationRequested) {
   const header = new Uint8Array(2);
   // find address
   let port;
+  // break up clientDetails to client Port & destinationId
+  const ports = destinationRequested.split(",");
+  const clientPort = ports[0].replace(",", "");
+  const destinationId = ports[1].replace(",", "");
   for (let i = 0; i < forwarders.length; i++) {
-    let result = forwarders[i].searchForReceiver(destinationRequested);
+    let result = forwarders[i].searchForReceiver(destinationId);
     if (result) port = result;
   }
+  console.log("clientPort is " + clientPort);
+  console.log("destinationId is " + destinationId);
   console.log("port is " + port);
   // if found, set header to 5
   if (port) header[0] = 5;
@@ -93,7 +85,11 @@ function locateDestinationForForwarder(info, destinationRequested) {
 
   let payload;
   // if found, payload is header AND new forwarder address
-  if (port) payload = [data, Buffer.from(JSON.stringify(port))];
+  if (port) {
+    const portResult = destinationRequested + "," + port;
+    console.log("controller will send " + portResult);
+    payload = [data, Buffer.from(JSON.stringify(portResult))];
+  }
   // else payload is header & destination id
   else payload = [data, destinationRequested];
 
