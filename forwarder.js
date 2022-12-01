@@ -1,6 +1,7 @@
 import dgram from "node:dgram";
 import Receiver from "./Objects/Receiver.js";
 import Forwarder from "./Objects/Forwarder.js";
+
 import config from "./config.js";
 import * as readline from "readline";
 
@@ -76,11 +77,12 @@ forwarder.on("message", (msg, info) => {
     // if it exists locally, forward it
     if (result) {
       console.log("exists locally");
-      // set header
-      header[0] = 6;
+      // since forwarder to receiver, first header byte is 2
+      header[0] = 2;
       // set destination to forwarder
       destinationPort = result;
       // set payload to message
+      const data = Buffer.from(header);
       payloadForNextRequest = [data, "messageFromClient"];
     }
     // if not in table, ask controller
@@ -88,11 +90,12 @@ forwarder.on("message", (msg, info) => {
       // if coming from client, ask controller
       if (headerByteOne == 9) {
         console.log("does not exist locally");
-        // set header
-        header[0] = 7;
+        // since forwarder asking controller, first header byte is 4
+        header[0] = 4;
         // set destination to controller
         destinationPort = config.controller_port;
         // set payload to requested destination
+        const data = Buffer.from(header);
         payloadForNextRequest = [data, destination];
       }
       // if coming from forwarder, there was mistake, just kill request
@@ -102,11 +105,11 @@ forwarder.on("message", (msg, info) => {
         // set destination to forwarder
         destinationPort = info.port;
         // set payload to requested destination
+        const data = Buffer.from(header);
         payloadForNextRequest = [data, destination];
       }
     }
 
-    const data = Buffer.from(header);
     forwarder.send(
       payloadForNextRequest,
       destinationPort,
@@ -148,7 +151,15 @@ forwarder.on("message", (msg, info) => {
   }
   // if controller returns w data
   else if (headerByteOne == 5) {
+    const payload = new TextDecoder().decode(msg);
+    const genMsg = payload.toString();
+    const newForwarderPort = genMsg.slice(1);
+    console.log("newForwarderPort is " + newForwarderPort);
     // forward to next forwarder
+    forwardMessageToForwarder(
+      "this message",
+      newForwarderPort.replace(/\W/g, "").trim()
+    );
   }
   // if controller returns without data
   else if (headerByteOne == 6) {
@@ -228,7 +239,7 @@ function updateControllerOnReceiver() {
 }
 
 function sendMessageToClient(destinationRequested, clientPort) {
-  console.log("payload is ");
+  console.log("sending to client " + clientPort);
   // create header
   const header = new Uint8Array(1);
   // since forwarder could not find destination, first header byte is 8
@@ -236,39 +247,44 @@ function sendMessageToClient(destinationRequested, clientPort) {
   const data = Buffer.from(header);
   const message = "the detination " + destinationRequested + " is not valid";
   //sending msg
-  client.send([data, message], clientPort, conf.serverHost, (error) => {
+  forwarder.send([data, message], clientPort, config.serverHost, (error) => {
     if (error) {
       console.log(error);
-      client.close();
+      forwarder.close();
     } else {
       console.log(
         "single msg sent to forwarder from ",
-        conf.serverHost,
-        conf.port
+        config.serverHost,
+        config.port
       );
     }
   });
 }
-function forwardMessageToForwarder(message, forwarderPort) {
-  console.log("payload is ");
+function forwardMessageToForwarder(destination, forwarderPort) {
+  console.log("forwader to forwarder ");
   // create header
   const header = new Uint8Array(1);
   // since forwarder to forwarder, first header byte is 10
   header[0] = 10;
   const data = Buffer.from(header);
   //sending msg
-  client.send([data, message], forwarderPort, conf.serverHost, (error) => {
-    if (error) {
-      console.log(error);
-      client.close();
-    } else {
-      console.log(
-        "single msg sent to forwarder from ",
-        conf.serverHost,
-        conf.port
-      );
+  forwarder.send(
+    [data, destination],
+    forwarderPort,
+    config.serverHost,
+    (error) => {
+      if (error) {
+        console.log(error);
+        forwarder.close();
+      } else {
+        console.log(
+          "single msg sent to forwarder from ",
+          config.serverHost,
+          config.port
+        );
+      }
     }
-  });
+  );
 }
 
 function sendCloseDownMessage(fileToReturn) {

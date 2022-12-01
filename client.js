@@ -1,6 +1,6 @@
 import dgram from "node:dgram";
 
-import conf from "./config.js";
+import config from "./config.js";
 import * as readline from "readline";
 
 // creating a client socket
@@ -92,7 +92,7 @@ function sendMessage(destinationId) {
   client.send(
     [data, destinationId],
     forwarderPort,
-    conf.serverHost,
+    config.serverHost,
     (error) => {
       if (error) {
         console.log(error);
@@ -100,8 +100,8 @@ function sendMessage(destinationId) {
       } else {
         console.log(
           "single msg sent to forwarder from ",
-          conf.serverHost,
-          conf.port
+          config.serverHost,
+          config.port
         );
       }
     }
@@ -116,15 +116,15 @@ function sendMessage(destinationId) {
 //   header[1] = 0;
 //   const data = Buffer.from(header);
 //   //sending msg
-//   client.send(data, conf.port, conf.serverHost, (error) => {
+//   client.send(data, config.port, config.serverHost, (error) => {
 //     if (error) {
 //       console.log(error);
 //       client.close();
 //     } else {
 //       console.log(
 //         "single msg sent to ingress from ",
-//         conf.serverHost,
-//         conf.port
+//         config.serverHost,
+//         config.port
 //       );
 //     }
 //   });
@@ -140,15 +140,15 @@ function sendMessage(destinationId) {
 //   console.log("sending close down client");
 //
 //   //sending msg
-//   client.send(data, conf.port, conf.serverHost, (error) => {
+//   client.send(data, config.port, config.serverHost, (error) => {
 //     if (error) {
 //       console.log(error);
 //       client.close();
 //     } else {
 //       console.log(
 //         "single msg sent to ingress from ",
-//         conf.serverHost,
-//         conf.port
+//         config.serverHost,
+//         config.port
 //       );
 //       client.close();
 //       process.exit();

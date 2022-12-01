@@ -41,7 +41,7 @@ export default class Forwarder {
         JSON.stringify(idInQuestion.replace(/\W/g, "").trim())
       ) {
         console.log("found it!");
-        return this.address;
+        return this.port;
       } else {
         console.log("dont agree");
         console.log(JSON.stringify(currentId) + "!");

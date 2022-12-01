@@ -1,6 +1,6 @@
 import dgram from "node:dgram";
 
-import conf from "./config.js";
+import config from "./config.js";
 import * as readline from "readline";
 
 import fs from "fs";
@@ -77,15 +77,15 @@ function sendSetUpMessage(fileToReturn) {
   const data = Buffer.from(header);
   const payload = Buffer.from(JSON.stringify(receiverId));
   //sending msg
-  receiver.send([data, payload], forwarderPort, conf.serverHost, (error) => {
+  receiver.send([data, payload], forwarderPort, config.serverHost, (error) => {
     if (error) {
       console.log(error);
       receiver.close();
     } else {
       console.log(
         "single msg sent to ingress from ",
-        conf.serverHost,
-        conf.port
+        config.serverHost,
+        config.port
       );
     }
   });
@@ -100,18 +100,25 @@ function sendCloseDownMessage(fileToReturn) {
   console.log("sending close down receiver");
 
   //sending msg
-  receiver.send(data, conf.port, conf.serverHost, (error) => {
+  receiver.send(data, config.port, config.serverHost, (error) => {
     if (error) {
       console.log(error);
       receiver.close();
     } else {
       console.log(
         "single msg sent to forwarder from ",
-        conf.serverHost,
-        conf.port
+        config.serverHost,
+        config.port
       );
       receiver.close();
       process.exit();
     }
   });
 }
+
+receiver.on("message", (msg, info) => {
+  console.log("Data received from server : " + msg.toString());
+  console.log("data coming from " + info.port);
+  const payload = new TextDecoder().decode(msg);
+  const genMsg = payload.toString();
+});

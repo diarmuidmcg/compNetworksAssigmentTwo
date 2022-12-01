@@ -75,25 +75,25 @@ controller.on("message", (msg, info) => {
   // );
 }); // end controller.on
 
-function locateDestinationForForwarder(info) {
+function locateDestinationForForwarder(info, destinationRequested) {
   // create header
   const header = new Uint8Array(2);
   // find address
-  let address;
+  let port;
   for (let i = 0; i < forwarders.length; i++) {
     let result = forwarders[i].searchForReceiver(destinationRequested);
-    if (result) address = result;
+    if (result) port = result;
   }
-  console.log("address is " + address);
+  console.log("port is " + port);
   // if found, set header to 5
-  if (address) header[0] = 5;
+  if (port) header[0] = 5;
   // if not found, set header to 6
   else header[0] = 6;
   const data = Buffer.from(header);
 
   let payload;
   // if found, payload is header AND new forwarder address
-  if (address) payload = [data, address];
+  if (port) payload = [data, Buffer.from(JSON.stringify(port))];
   // else payload is header & destination id
   else payload = [data, destinationRequested];
 
@@ -104,9 +104,7 @@ function locateDestinationForForwarder(info) {
       controller.close();
     } else {
       console.log(
-        "single msg sent to forwarder from ",
-        conf.serverHost,
-        conf.port
+        "msg sent to forwarder " + info.port + " from " + config.port
       );
     }
   });
