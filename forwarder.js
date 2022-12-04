@@ -24,12 +24,11 @@ function readForwardLineAsync(message) {
   return new Promise((resolve, reject) => {
     rl.question(message, (answer) => {
       const underCaseAnswer = answer.toLowerCase();
-
       // exit process if exit
       if (underCaseAnswer == "exit") sendCloseDownMessage();
       else {
+        // set port to entered answer
         forwarderPort = underCaseAnswer;
-
         forwarder.bind(forwarderPort);
         handleForwardJoiner("\ntype 'exit' to quit\n");
       }
@@ -63,7 +62,7 @@ forwarder.on("message", (msg, info) => {
     let searchReceiverId;
     // if client sending
     if (headerByteOne == 9) {
-      console.log("requested destination " + destination);
+      // add this client to the local array
       clients.push({
         port: info.port,
         destination: destination,
@@ -73,8 +72,8 @@ forwarder.on("message", (msg, info) => {
     }
     // if forwarder sending
     else {
+      // get receiverId from msg
       const ports = destination.split(",");
-
       searchReceiverId = ports[1].replace(",", "");
     }
 
@@ -87,11 +86,7 @@ forwarder.on("message", (msg, info) => {
     let destinationPort;
     let payloadForNextRequest;
     // if it exists locally, forward it
-    if (result) {
-      console.log("exists locally");
-
-      sendMessageToClientFound(destination, result);
-    }
+    if (result) sendMessageToClientFound(destination, result);
     // if not in table, ask controller
     else {
       // if coming from client, ask controller
@@ -141,11 +136,6 @@ forwarder.on("message", (msg, info) => {
     const newReceiver = new Receiver(info.port, info.address, withoutHeader);
     // append to receiver array
     thisForwarder.addReceiver(newReceiver);
-    // receivers.push({
-    //   port: info.port,
-    //   address: info.address,
-    //   receiverId: withoutHeader,
-    // });
     // tell controller
     updateControllerOnReceiver();
   }
@@ -153,7 +143,6 @@ forwarder.on("message", (msg, info) => {
   else if (headerByteOne == 1) {
     // remove receiver by port number
     thisForwarder.removeReceiverByPort(info.port);
-    // receivers = receivers.filter((item) => item.port !== info.port);
     // tell controller
     updateControllerOnReceiver();
   }
@@ -163,7 +152,6 @@ forwarder.on("message", (msg, info) => {
     const genMsg = payload.toString();
     const destinationData = genMsg.slice(1).replace(/['"]+/g, "");
     console.log("destinationData is " + destinationData);
-
     // forward to next forwarder
     forwardMessageToForwarder("this message", destinationData);
   }

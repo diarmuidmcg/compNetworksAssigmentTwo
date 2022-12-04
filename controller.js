@@ -21,41 +21,39 @@ controller.on("message", (msg, info) => {
   // check header for where it's going
   const headerByteOne = msg[0];
   console.log("header on  controller is " + headerByteOne);
-  // if header is 3, the forwarder is updating the controller
-  if (headerByteOne == 3) {
-    const payload = new TextDecoder().decode(msg);
-    const genMsg = payload.toString();
-    const withoutHeader = genMsg.slice(1);
-    console.log("receivers are " + withoutHeader);
-
-    // if the forwarder exists, remove it
-    forwarders = forwarders.filter((item) => item.port !== info.port);
-    // if it doesnt, add it
-    let newForwarder = new Forwarder({
-      port: info.port,
-      address: info.address,
-      arrayOfReceivers: withoutHeader,
-    });
-    forwarders.push(newForwarder);
-    // forwarders.push({
-    //   port: info.port,
-    //   address: info.address,
-    //   receivers: withoutHeader,
-    // });
-  }
-  // if header is 4, the forwarder is asking for a destination
-  else if (headerByteOne == 4) {
-    const payload = new TextDecoder().decode(msg);
-    const genMsg = payload.toString();
-    const destinationRequested = genMsg.slice(1);
-    console.log("destination requested is " + destinationRequested);
-    // identify the address & send it
-    locateDestinationForForwarder(info, destinationRequested);
-  }
-  // if header is 7, the forwarder is shutting down
-  else if (headerByteOne == 7) {
-    // remove forwarder from list
-    forwarders = forwarders.filter((item) => item.port !== info.port);
+  let payload, genMsg;
+  switch (headerByteOne) {
+    // if header is 3, the forwarder is updating the controller
+    case 3:
+      payload = new TextDecoder().decode(msg);
+      genMsg = payload.toString();
+      const withoutHeader = genMsg.slice(1);
+      console.log("receivers are " + withoutHeader);
+      // if the forwarder exists, remove it
+      forwarders = forwarders.filter((item) => item.port !== info.port);
+      // if it doesnt, add it
+      let newForwarder = new Forwarder({
+        port: info.port,
+        address: info.address,
+        arrayOfReceivers: withoutHeader,
+      });
+      forwarders.push(newForwarder);
+      break;
+    // if header is 4, the forwarder is asking for a destination
+    case 4:
+      payload = new TextDecoder().decode(msg);
+      genMsg = payload.toString();
+      const destinationRequested = genMsg.slice(1);
+      console.log("destination requested is " + destinationRequested);
+      // identify the address & send it
+      locateDestinationForForwarder(info, destinationRequested);
+      break;
+    // if header is 7, the forwarder is shutting down
+    case 7:
+      // remove forwarder from list
+      forwarders = forwarders.filter((item) => item.port !== info.port);
+      break;
+    default:
   }
 
   console.log("forwarders are " + JSON.stringify(forwarders));
