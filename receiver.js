@@ -96,7 +96,7 @@ function sendCloseDownMessage(fileToReturn) {
   console.log("sending close down receiver");
 
   //sending msg
-  receiver.send(data, config.port, config.serverHost, (error) => {
+  receiver.send(data, forwarderPort, config.serverHost, (error) => {
     if (error) {
       console.log(error);
       receiver.close();
@@ -119,9 +119,9 @@ receiver.on("listening", () => {
   const family = address.family;
   const ipaddr = address.address;
 
-  console.log("udp_receiver", "info", "receiver is listening at port " + port);
-  console.log("udp_receiver", "info", "receiver ip :" + ipaddr);
-  console.log("udp_receiver", "info", "receiver is IP4/IP6 : " + family);
+  // console.log("udp_receiver", "info", "receiver is listening at port " + port);
+  // console.log("udp_receiver", "info", "receiver ip :" + ipaddr);
+  // console.log("udp_receiver", "info", "receiver is IP4/IP6 : " + family);
 });
 
 receiver.on("message", (msg, info) => {

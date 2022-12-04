@@ -69,7 +69,9 @@ function locateDestinationForForwarder(info, destinationRequested) {
   const clientPort = ports[0].replace(",", "");
   const destinationId = ports[1].replace(",", "");
   for (let i = 0; i < forwarders.length; i++) {
-    let result = forwarders[i].searchForReceiver(destinationId);
+    let result = forwarders[i].searchForReceiverAndReturnForwarder(
+      destinationId
+    );
     if (result) port = result;
   }
   console.log("clientPort is " + clientPort);
